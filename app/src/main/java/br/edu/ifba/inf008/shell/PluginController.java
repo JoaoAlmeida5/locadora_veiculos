@@ -4,6 +4,7 @@ import br.edu.ifba.inf008.App;
 import br.edu.ifba.inf008.interfaces.IPluginController;
 import br.edu.ifba.inf008.interfaces.IPlugin;
 import br.edu.ifba.inf008.interfaces.IPricePlugin;
+import br.edu.ifba.inf008.shell.Core;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -90,10 +91,11 @@ public class PluginController implements IPluginController {
     public void startPlugins() {
         for (IPlugin plugin : loadedPlugins) {
             try {
-                plugin.init();
+                // CORREÇÃO: Passar o Core.getInstance() como argumento
+                plugin.init(Core.getInstance());
+
             } catch (Exception e) {
-                System.out.println("Erro ao inicializar plugin: "
-                        + plugin.getClass().getName());
+                System.out.println("Erro ao inicializar plugin: " + plugin.getClass().getName());
                 e.printStackTrace();
             }
         }
