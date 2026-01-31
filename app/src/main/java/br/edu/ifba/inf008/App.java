@@ -32,10 +32,15 @@ public class App extends Application {
 
         // 3. Carrega Plugins (Eles vão aparecer automaticamente no TabPane se tiverem UI)
         System.out.println(" >>> CARREGANDO PLUGINS... ");
+
+        // Passo A: Varre a pasta (Encontra os JARs)
         core.getPluginController().init();
 
-        // 4. Cria a Aba de Locação (Seu código de formulário)
-        // Isso garante que a funcionalidade principal esteja disponível junto com os plugins
+        // Passo B: 🔥 INICIALIZA OS PLUGINS (Adicione esta linha!)
+        // É aqui que a "Aba Azul" e o "Gráfico" são criados
+        core.getPluginController().startPlugins();
+
+        // 4. Cria a Aba de Locação
         createRentalTab(rootTabPane);
 
         // 5. Exibe a Janela
