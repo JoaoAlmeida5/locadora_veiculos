@@ -1,21 +1,19 @@
 package br.edu.ifba.inf008.interfaces;
 
-import br.edu.ifba.inf008.model.Customer;
-import br.edu.ifba.inf008.model.Rental;
-import br.edu.ifba.inf008.model.Vehicle;
-
 import java.util.List;
+import br.edu.ifba.inf008.model.Customer;
+import br.edu.ifba.inf008.model.Vehicle;
+import br.edu.ifba.inf008.model.Rental;
 
 public interface IDataProvider {
 
-    // Métodos de Leitura (Buscar dados)
-    List<Customer> getAllCustomers();
-    List<Vehicle> getAllVehicles();
-    List<Vehicle> getVehiclesByType(Vehicle.VehicleType type);
-    List<Rental> getActiveRentals();
+    void saveClient(Customer client);
+    List<Customer> getAllClients();
 
-    // Métodos de Escrita (Salvar/Alterar dados)
-    boolean saveRental(Rental rental);
-    boolean updateVehicleStatus(String licensePlate, Vehicle.VehicleStatus newStatus);
-    boolean updateRentalReturn(int rentalId, java.time.LocalDateTime endDate, java.math.BigDecimal totalValue);
+    void saveVehicle(Vehicle vehicle);
+    List<Vehicle> getAllVehicles();
+    Vehicle findVehicleByPlate(String plate);
+
+    void saveRental(Rental rental);
+    List<Rental> getAllRentals();
 }

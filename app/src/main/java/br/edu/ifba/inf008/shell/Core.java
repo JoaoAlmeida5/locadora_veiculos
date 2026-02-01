@@ -1,59 +1,95 @@
 package br.edu.ifba.inf008.shell;
 
+import br.edu.ifba.inf008.model.*;
 import br.edu.ifba.inf008.interfaces.*;
-import br.edu.ifba.inf008.MariaDBProvider;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.TabPane;
-import javafx.application.Application;
-import javafx.application.Platform;
+import br.edu.ifba.inf008.interfaces.IDataProvider;
 
-public class Core extends ICore
-{
-    private final IDataProvider dataProvider;
-    private final IUIController uiController;
-    private final IAuthenticationController authenticationController;
-    private final IIOController ioController;
-    private final IPluginController pluginController;
+import br.edu.ifba.inf008.MariaDBDataProvider;
 
-    public Core(TabPane mainTabPane, MenuBar menubar) {
-        if (instance != null) {
-            System.err.println("Fatal error: core is already initialized!");
-            System.exit(-1);
+import java.util.*;
+
+public class Core {
+
+    private static Core instance;
+
+    private IDataProvider dataProvider;
+
+    private Map<String, IVehiclePlugin> vehiclePlugins;
+    private List<IReportPlugin> reportPlugins;
+
+    private Core() {
+        dataProvider = new MariaDBDataProvider();
+        vehiclePlugins = new HashMap<>();
+        reportPlugins = new ArrayList<>();
+    }
+
+    public static Core getInstance() {
+        if (instance == null) {
+            instance = new Core();
+        }
+        return instance;
+    }
+
+    // ---------------- CLIENT ----------------
+    public void registerClient(String name, String cpf) {
+        Customer client = new Customer(name, cpf);
+        dataProvider.saveClient(client);
+    }
+
+    public List<Customer> listClients() {
+        return dataProvider.getAllClients();
+    }
+
+    public void registerVehicle(String plate, String model, double dailyPrice, String type) {
+        Vehicle vehicle = new Vehicle(plate, model, dailyPrice, type);
+        dataProvider.saveVehicle(vehicle);
+    }
+
+    public List<Vehicle> listVehicles() {
+        return dataProvider.getAllVehicles();
+    }
+
+    public void registerVehiclePlugin(IVehiclePlugin plugin) {
+        vehiclePlugins.put(plugin.getType(), plugin);
+    }
+
+    public void registerReportPlugin(IReportPlugin plugin) {
+        reportPlugins.add(plugin);
+    }
+
+    public Collection<IVehiclePlugin> getVehiclePlugins() {
+        return vehiclePlugins.values();
+    }
+
+    public List<IReportPlugin> getReportPlugins() {
+        return reportPlugins;
+    }
+
+    public void rentVehicle(String cpf, String plate, int days) {
+
+        Customer client = dataProvider.getAllClients()
+                .stream()
+                .filter(c -> c.getCpf().equals(cpf))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        Vehicle vehicle = dataProvider.findVehicleByPlate(plate);
+        if (vehicle == null) {
+            throw new RuntimeException("Veículo não encontrado");
         }
 
-        instance = this;
+        IVehiclePlugin plugin = vehiclePlugins.get(vehicle.getType());
+        if (plugin == null) {
+            throw new RuntimeException("Plugin do veículo não registrado");
+        }
 
-        this.dataProvider = new MariaDBProvider();
-        System.out.println("Core: DataProvider inicializado.");
+        double total = plugin.calculatePrice(vehicle.getDailyPrice(), days);
 
-        this.uiController = new UIController(mainTabPane,menubar);
-        this.authenticationController = new AuthenticationController();
-        this.ioController = new IOController();
-        this.pluginController = new PluginController();
+        Rental rental = new Rental(client, vehicle, days, total);
+        dataProvider.saveRental(rental);
     }
 
-    @Override
-    public IDataProvider getDataProvider() {
-        return this.dataProvider;
-    }
-
-    @Override
-    public IUIController getUIController() {
-        return this.uiController;
-    }
-
-    @Override
-    public IAuthenticationController getAuthenticationController() {
-        return this.authenticationController;
-    }
-
-    @Override
-    public IIOController getIOController() {
-        return this.ioController;
-    }
-
-    @Override
-    public IPluginController getPluginController() {
-        return this.pluginController;
+    public List<Rental> listRentals() {
+        return dataProvider.getAllRentals();
     }
 }

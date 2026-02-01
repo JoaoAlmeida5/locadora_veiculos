@@ -1,34 +1,40 @@
 package br.edu.ifba.inf008.model;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
 public class Rental {
 
-    private int id;
-    private Customer customer;
+    private Customer client;
     private Vehicle vehicle;
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
-    private BigDecimal totalValue;
+    private int days;
+    private double totalPrice;
 
-    public Rental() {}
+    public Rental(Customer client, Vehicle vehicle, int days, double totalPrice) {
+        this.client = client;
+        this.vehicle = vehicle;
+        this.days = days;
+        this.totalPrice = totalPrice;
+    }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    // construtor usado pelo banco
+    public Rental(String cpf, String plate, int days, double totalPrice) {
+        this.client = new Customer("", cpf);
+        this.vehicle = new Vehicle(plate, "", 0, "");
+        this.days = days;
+        this.totalPrice = totalPrice;
+    }
 
-    public Customer getCustomer() { return customer; }
-    public void setCustomer(Customer customer) { this.customer = customer; }
+    public Customer getClient() {
+        return client;
+    }
 
-    public Vehicle getVehicle() { return vehicle; }
-    public void setVehicle(Vehicle vehicle) { this.vehicle = vehicle; }
+    public Vehicle getVehicle() {
+        return vehicle;
+    }
 
-    public LocalDateTime getStartDate() { return startDate; }
-    public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
+    public int getDays() {
+        return days;
+    }
 
-    public LocalDateTime getEndDate() { return endDate; }
-    public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
-
-    public BigDecimal getTotalValue() { return totalValue; }
-    public void setTotalValue(BigDecimal totalValue) { this.totalValue = totalValue; }
+    public double getTotalPrice() {
+        return totalPrice;
+    }
 }
