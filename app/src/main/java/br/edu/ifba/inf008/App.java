@@ -1,11 +1,15 @@
 package br.edu.ifba.inf008; // Ajuste o pacote se necessário
 
-import br.edu.ifba.inf008.MariaDBProvider; // Apenas se precisar importar classes concretas
+import br.edu.ifba.inf008.interfaces.IPricePlugin;
+import br.edu.ifba.inf008.interfaces.ICore;
+import br.edu.ifba.inf008.MariaDBProvider;
+import br.edu.ifba.inf008.shell.Core;
+import br.edu.ifba.inf008.shell.PluginController;
+import br.edu.ifba.inf008.shell.UIController;
 import br.edu.ifba.inf008.interfaces.IDataProvider;
 import br.edu.ifba.inf008.model.Customer;
 import br.edu.ifba.inf008.model.Rental;
 import br.edu.ifba.inf008.model.Vehicle;
-import br.edu.ifba.inf008.shell.Core;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -21,44 +25,32 @@ public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // 1. Estrutura Base (Microkernel Shell)
         MenuBar menuBar = new MenuBar();
         TabPane rootTabPane = new TabPane();
-        VBox mainLayout = new VBox(menuBar, rootTabPane); // Layout Principal
+        VBox mainLayout = new VBox(menuBar, rootTabPane);
 
-        // 2. Inicializa o Core (Conecta DB, Configura Singleton e UI)
-        // O Core recebe o TabPane para que os plugins possam adicionar abas nele
         Core core = new Core(rootTabPane, menuBar);
 
-        // 3. Carrega Plugins (Eles vão aparecer automaticamente no TabPane se tiverem UI)
         System.out.println(" >>> CARREGANDO PLUGINS... ");
 
-        // Passo A: Varre a pasta (Encontra os JARs)
         core.getPluginController().init();
 
-        // Passo B: 🔥 INICIALIZA OS PLUGINS (Adicione esta linha!)
-        // É aqui que a "Aba Azul" e o "Gráfico" são criados
         core.getPluginController().startPlugins();
 
-        // 4. Cria a Aba de Locação
         createRentalTab(rootTabPane);
 
-        // 5. Exibe a Janela
         Scene scene = new Scene(mainLayout, 1024, 768);
         primaryStage.setTitle("Locadora de Veículos - INF008");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    // Movemos sua lógica para um método auxiliar para não poluir o start()
     private void createRentalTab(TabPane tabPane) {
-        // Recupera o DataProvider do Core (Singleton) em vez de criar um novo
         IDataProvider dataProvider = Core.getInstance().getDataProvider();
 
         Label lblCliente = new Label("Selecione o Cliente:");
         ComboBox<Customer> cmbCustomers = new ComboBox<>();
 
-        // Preenche Clientes
         try {
             cmbCustomers.getItems().addAll(dataProvider.getAllCustomers());
         } catch (Exception ex) {
@@ -73,7 +65,6 @@ public class App extends Application {
         ListView<Vehicle> listVehicles = new ListView<>();
         Label lblResultado = new Label();
 
-        // Lógica de Busca
         btnBuscar.setOnAction(e -> {
             Vehicle.VehicleType tipo = cmbType.getValue();
             if (tipo != null) {
@@ -91,25 +82,43 @@ public class App extends Application {
 
         Button btnAlugar = new Button("ALUGAR VEÍCULO");
 
-        // Lógica de Aluguel
         btnAlugar.setOnAction(e -> {
             Customer cliente = cmbCustomers.getValue();
             Vehicle veiculo = listVehicles.getSelectionModel().getSelectedItem();
 
             if (cliente != null && veiculo != null) {
-                // TODO: Aqui futuramente usaremos o PLUGIN de preço para calcular o valor real
-                BigDecimal valorEstimado = new BigDecimal("100.00");
-
+                // 1. Montamos o objeto Rental (ainda sem preço)
                 Rental aluguel = new Rental();
                 aluguel.setCustomer(cliente);
                 aluguel.setVehicle(veiculo);
                 aluguel.setStartDate(LocalDateTime.now());
-                aluguel.setEndDate(LocalDateTime.now().plusDays(1));
-                aluguel.setTotalValue(valorEstimado);
+                aluguel.setEndDate(LocalDateTime.now().plusDays(3)); // Exemplo: 3 dias de aluguel
 
+                // 2. Buscamos o Plugin de Preço no Core
+                // Note que usamos Core.getInstance() para pegar o controller
+                var pluginController = Core.getInstance().getPluginController();
+                IPricePlugin pricePlugin = pluginController.getPricePlugin();
+
+                BigDecimal valorFinal;
+
+                if (pricePlugin != null) {
+                    // SE achou o plugin, usa a lógica dele
+                    System.out.println("Calculando preço usando: " + pricePlugin.getPluginName());
+                    double precoCalculado = pricePlugin.calculatePrice(aluguel);
+                    valorFinal = BigDecimal.valueOf(precoCalculado);
+                } else {
+                    // SE NÃO achou, usa um fallback (plano B)
+                    System.out.println("Nenhum plugin de preço encontrado. Usando fixo.");
+                    valorFinal = new BigDecimal("100.00");
+                }
+
+                aluguel.setTotalValue(valorFinal);
+
+                // 3. Salva no Banco
                 if (dataProvider.saveRental(aluguel)) {
-                    new Alert(Alert.AlertType.INFORMATION, "Aluguel realizado com sucesso!").show();
-                    btnBuscar.fire(); // Atualiza a lista
+                    String msg = String.format("Aluguel salvo! Valor Total: R$ %.2f", valorFinal);
+                    new Alert(Alert.AlertType.INFORMATION, msg).show();
+                    btnBuscar.fire();
                 } else {
                     new Alert(Alert.AlertType.ERROR, "Erro ao salvar aluguel.").show();
                 }
@@ -118,7 +127,6 @@ public class App extends Application {
             }
         });
 
-        // Monta o Layout da Aba
         VBox rentalLayout = new VBox(10);
         rentalLayout.setPadding(new Insets(15));
         rentalLayout.getChildren().addAll(
@@ -129,7 +137,6 @@ public class App extends Application {
                 btnAlugar, lblResultado
         );
 
-        // Adiciona como uma Aba no TabPane principal
         Tab rentalTab = new Tab("Nova Locação");
         rentalTab.setContent(rentalLayout);
         rentalTab.setClosable(false); // Aba fixa

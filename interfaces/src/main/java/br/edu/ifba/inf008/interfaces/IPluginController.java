@@ -6,4 +6,5 @@ public interface IPluginController
 {
     public abstract boolean init();
     void startPlugins();
+    IPricePlugin getPricePlugin();
 }
